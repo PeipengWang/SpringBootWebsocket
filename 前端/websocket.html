@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket 实时推送示例</title>
+
+    <script src="sockjs.min.js"></script>
+    <script src="stomp.min.js"></script>
+</head>
+<body>
+<h1>WebSocket 实时推送示例</h1>
+
+<button onclick="connect()">连接</button>
+<button onclick="disconnect()">断开连接</button>
+
+<input type="text" id="messageInput" placeholder="输入消息">
+<button onclick="sendMessage()">发送消息</button>
+
+<div>
+    <h2>服务端推送的消息:</h2>
+    <div id="updates"></div>
+    <h2>服务端响应的消息:</h2>
+    <div id="responses"></div>
+</div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const socket = new SockJS('http://localhost:8080/ws/stomp/tm'); // 使用配置的 WebSocket 端点
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({ uid: 'user1' }, (frame) => {
+            console.log('已连接: ' + frame);
+
+            // 订阅 /topic/updates 推送的消息
+            stompClient.subscribe('/topic/updates', (message) => {
+                showUpdates(message.body);
+            });
+
+            // 订阅 /topic/responses 的响应消息
+            stompClient.subscribe('/topic/responses', (message) => {
+                showResponses(message.body);
+            });
+        });
+    }
+
+    function disconnect() {
+        if (stompClient) {
+            stompClient.disconnect();
+        }
+        console.log('已断开连接');
+    }
+
+    function sendMessage() {
+        const message = document.getElementById('messageInput').value;
+        stompClient.send('/message', {}, message); // 发送消息到服务端
+    }
+
+    function showUpdates(message) {
+        const updatesDiv = document.getElementById('updates');
+        const newMessage = document.createElement('div');
+        newMessage.textContent = message;
+        updatesDiv.appendChild(newMessage);
+    }
+
+    function showResponses(message) {
+        const responsesDiv = document.getElementById('responses');
+        const newMessage = document.createElement('div');
+        newMessage.textContent = message;
+        responsesDiv.appendChild(newMessage);
+    }
+</script>
+</body>
+</html>
